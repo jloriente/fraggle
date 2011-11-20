@@ -5,6 +5,7 @@ var sys = require('sys')
 require('colors')
 var ejs = require('ejs')
 var settings = require('./settings');
+var isNginx = settings.isNginx();
 
 var basePath = process.env.FRAGGLE_BASE_PATH || process.cwd()
 var repos = path.join(basePath, 'repos')
@@ -12,6 +13,7 @@ var logs = path.join(basePath, 'logs')
 var conf = path.join(basePath, 'config.json')
 var cfg = path.join(basePath, settings.isNginx ? 'nginx.cfg' : 'haproxy.cfg')
 var minport = 9000
+
 
 function availablePort(config) {
 	var p = minport
@@ -335,9 +337,9 @@ if (!action) {
 				}
 				
 				if (requires_proxy_restart) {
-					fs.readFile(settings.isNginx ? 'nginx.ejs' : 'haproxy.ejs', 'utf8', function(err, template) {
+					fs.readFile(isNginx ? 'nginx.ejs' : 'haproxy.ejs', 'utf8', function(err, template) {
 						if (err) {
-							console.log('Error reading ' + setting.isNginx ? 'nginx.ejs' : 'haproxy.ejs')
+							console.log('Error reading ' + isNginx ? 'nginx.ejs' : 'haproxy.ejs')
 							return
 						}
 						
@@ -348,14 +350,15 @@ if (!action) {
 								console.log('Error writing configuration file')
 								return
 							}
-							
-							fs.readFile('/var/run/haproxy.pid', 'ascii', function(err, content) {
+						    var pid = '/var/run/' + isNginx ? 'nginx.pid' : 'haproxy.pid';
+                            var execPath = isNginx ? '/usr/sbin/nginx' : '/usr/local/sbin/haproxy';
+							fs.readFile( pid, 'ascii', function(err, content) {
 								var args = null
 								if (err) {
-									var args = ['/usr/local/sbin/haproxy', '-f', cfg, '-p', '/var/run/haproxy.pid', '-st']
+									var args = [ execPath, '-f', cfg, '-p', pid, '-st']
 								} else {
 									content = content.replace(/^\s*|\s*$/g,"")
-									var args = ['/usr/local/sbin/haproxy', '-f', cfg, '-p', '/var/run/haproxy.pid', '-st', content]
+									var args = [ execPath, '-f', cfg, '-p', pid, '-st', content]
 								}
 								
 								var command = 'sudo'
@@ -364,7 +367,7 @@ if (!action) {
 									if (error) {
 										console.log(error)
 									} else {
-										console.log('HAProxy restarted')
+										console.log( isNginx ? 'Nginx restarted' : 'HAProxy restarted')
 									}
 								})
 							})
