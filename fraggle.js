@@ -4,12 +4,13 @@ var child_process = require('child_process')
 var sys = require('sys')
 require('colors')
 var ejs = require('ejs')
+var settings = require('./settings');
 
 var basePath = process.env.FRAGGLE_BASE_PATH || process.cwd()
 var repos = path.join(basePath, 'repos')
 var logs = path.join(basePath, 'logs')
 var conf = path.join(basePath, 'config.json')
-var cfg = path.join(basePath, 'haproxy.cfg')
+var cfg = path.join(basePath, settings.isNginx ? 'nginx.cfg' : 'haproxy.cfg')
 var minport = 9000
 
 function availablePort(config) {
@@ -334,9 +335,9 @@ if (!action) {
 				}
 				
 				if (requires_proxy_restart) {
-					fs.readFile('haproxy.ejs', 'utf8', function(err, template) {
+					fs.readFile(settings.isNginx ? 'nginx.ejs' : 'haproxy.ejs', 'utf8', function(err, template) {
 						if (err) {
-							console.log('Error reading haproxy.ejs')
+							console.log('Error reading ' + setting.isNginx ? 'nginx.ejs' : 'haproxy.ejs')
 							return
 						}
 						
