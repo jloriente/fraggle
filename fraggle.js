@@ -29,7 +29,7 @@ function isAvailable(config, p) {
 		if (!running) {
 			continue
 		}
-		
+
 		for (var subdomain in running) {
 			var port = running[subdomain].port
 			if (port === p) {
@@ -42,7 +42,7 @@ function isAvailable(config, p) {
 
 function execAndPrint(command, args, options, callback) {
 	var proc = child_process.spawn(command, args, options)
-	
+
 	proc.stdout.on('data', function (data) {
 		process.stdout.write(data)
 	})
@@ -97,7 +97,7 @@ var actions = {
 		var domain = process.argv[3]
 		var repo = process.argv[4]
 		var executable = process.argv[5]
-		
+
 		if (!domain || !repo || !executable) {
 			console.log('Usage: add <domain> <repo> <executable>')
 			callback(false, false)
@@ -107,11 +107,11 @@ var actions = {
 			callback(true, true)
 		}
 	},
-	
+
 	'deploy': function(config, callback) {
 		var subdomain = process.argv[3]
 		var port = availablePort(config)
-		
+
 		if (!subdomain) {
 			console.log('Usage: deploy <tag>.<domain>')
 			callback(false, false)
@@ -120,7 +120,7 @@ var actions = {
 			var info = findSubdomain(config, subdomain)
 			var domain = info.domain
 			var tag = info.tag
-			
+
 			if (!domain || !tag) {
 				console.log('Service not found. Use <add> first')
 				callback(false, false)
@@ -133,7 +133,7 @@ var actions = {
 				var repo = config[domain].repo
 				var executable = config[domain].executable
 				var args = null
-				
+
 				if (repo.indexOf('git@') === 0) {
 					command = 'git'
 					args = ['clone', repo, path.join(repos, subdomain)]
@@ -142,7 +142,7 @@ var actions = {
 					callback(false, false)
 					return
 				}
-				
+
 				createDirectories(function() {
 					console.log('Downloading project')
 					execAndPrint(command, args, null, function(error) {
@@ -152,12 +152,15 @@ var actions = {
 							return
 						}
 						console.log('Project downloaded')
-						
+
 						if (repo.indexOf('git@') === 0) {
 							command = 'git'
 							args = ['checkout', tag]
 						}
 						console.log('Changing repo to version', tag)
+                        console.log('command ' + command);
+                        console.log(repos);
+                        console.log('SUB : ' + subdomain);
 						execAndPrint(command, args, {cwd: path.join(repos, subdomain)}, function(error) {
 							if (error) {
 								console.log(error)
@@ -165,27 +168,39 @@ var actions = {
 								return
 							}
 							console.log('Changed to version', tag)
-							
+
 							command = 'forever'
-							args = ['start', '-a',
+
+                            // Temporally use forever without 'start' param
+                            /*
+                            args = ['start', '-a',
 								'-l', path.join(logs, subdomain+'_l.txt'),
 								'-o', path.join(logs, subdomain+'_o.txt'),
 								'-e', path.join(logs, subdomain+'_e.txt'),
 								path.join(subdomain, executable),
 								port
 							]
-							
+                            */
+
+							args = [ '-a',
+								'-l', path.join(logs, subdomain+'_l.txt'),
+								'-o', path.join(logs, subdomain+'_o.txt'),
+								'-e', path.join(logs, subdomain+'_e.txt'),
+								 path.join(subdomain, executable),
+								port
+							]
+
 							execAndPrint(command, args, {cwd: repos}, function(error) {
 								if (error) {
-									console.log(error)
+									console.log('x ' + error)
 									callback(false, false)
 									return
 								}
-								
+
 								var running = config[domain].running || {}
 								running[subdomain] = { port:port }
 								config[domain].running = running
-								
+
 								console.log('Service started')
 								callback(true, true)
 							})
@@ -194,13 +209,13 @@ var actions = {
 				})
 			}
 		}
-		
+
 	},
-	
+
 	'delete': function(config, callback) {
 		var subdomain = process.argv[3]
 		var port = availablePort(config)
-		
+
 		if (!subdomain) {
 			console.log('Usage: delete <tag>.<domain>')
 			callback(false, false)
@@ -209,7 +224,7 @@ var actions = {
 			var info = findSubdomain(config, subdomain)
 			var domain = info.domain
 			var tag = info.tag
-			
+
 			if (!domain || !tag) {
 				console.log('Service not found. Use <add> first')
 				callback(false, false)
@@ -219,9 +234,9 @@ var actions = {
 				callback(false, false)
 				return
 			}
-			
+
 			var executable = config[domain].executable
-			
+
 			var command = 'forever'
 			var args = ['stop', path.join(subdomain, executable)]
 			execAndPrint(command, args, {cwd: repos}, function(error) {
@@ -230,7 +245,7 @@ var actions = {
 					callback(false, false)
 					return
 				}
-				
+
 				var command = 'rm'
 				var args = ['-rf', path.join(repos, subdomain)]
 				execAndPrint(command, args, null, function(error) {
@@ -239,22 +254,22 @@ var actions = {
 						callback(false, false)
 						return
 					}
-					
+
 					var running = config[domain].running || {}
 					delete running[subdomain]
 					config[domain].running = running
-					
+
 					callback(true, true)
 				})
-				
+
 			})
 		}
 	},
-	
+
 	'list': function(config, callback) {
 		for (var key in config) {
 			sys.puts(key.green)
-			
+
 			var running = config[key].running
 			if (!running) {
 				sys.puts('No running processes')
@@ -267,11 +282,11 @@ var actions = {
 		}
 		callback(false, false)
 	},
-	
+
 	'default': function(config, callback) {
 		var subdomain = process.argv[3]
 		var port = availablePort(config)
-		
+
 		if (!subdomain) {
 			console.log('Usage: default <tag>.<domain>')
 			callback(false, false)
@@ -280,7 +295,7 @@ var actions = {
 			var info = findSubdomain(config, subdomain)
 			var domain = info.domain
 			var tag = info.tag
-			
+
 			if (!domain || !tag) {
 				console.log('Service not found. Use <add> first')
 				callback(false, false)
@@ -294,13 +309,13 @@ var actions = {
 				for (var sub in running) {
 					delete running[sub].prod
 				}
-				
+
 				config[domain].running[subdomain].prod = true
 				callback(true, true)
 			}
 		}
 	}
-	
+
 }
 
 var action = process.argv[2]
@@ -309,16 +324,16 @@ if (!action) {
 	console.log('Must pass an action')
 } else {
 	var f = actions[action]
-	
+
 	if (!f) {
 		console.log('Unknown action', action)
 	} else {
-		
+
 		var services = fs.readFile(conf, 'utf8', function(err, data) {
 			if (err) {
 				console.log(err)
 			}
-			
+
 			if (data) {
 				try {
 					data = JSON.parse(data)
@@ -329,22 +344,23 @@ if (!action) {
 			}
 			data = data || {}
 			f(data, function(requires_config_save, requires_proxy_restart) {
-				
+
 				if (requires_config_save) {
 					fs.writeFile(conf, JSON.stringify(data), function(err) {
 						console.log('Config saved')
 					})
 				}
-				
+
 				if (requires_proxy_restart) {
 					fs.readFile(isNginx ? 'nginx.ejs' : 'haproxy.ejs', 'utf8', function(err, template) {
 						if (err) {
 							console.log('Error reading ' + isNginx ? 'nginx.ejs' : 'haproxy.ejs')
 							return
 						}
-						
+
 						var out = ejs.render(template, {locals:{data:data}})
-						
+                        sys.out("OUT TEMPLATE : " + out);
+                        sys.out(sys.inspect(cfg));
 						fs.writeFile(cfg, out, function(err) {
 							if (err) {
 								console.log('Error writing configuration file')
@@ -360,9 +376,9 @@ if (!action) {
 									content = content.replace(/^\s*|\s*$/g,"")
 									var args = [ execPath, '-f', cfg, '-p', pid, '-st', content]
 								}
-								
+
 								var command = 'sudo'
-								
+
 								execAndPrint(command, args, null, function(error) {
 									if (error) {
 										console.log(error)
@@ -371,13 +387,13 @@ if (!action) {
 									}
 								})
 							})
-							
+
 						})
 					})
 				}
-				
+
 			})
-			
+
 		})
 	}
 }
