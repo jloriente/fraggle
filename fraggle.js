@@ -11,7 +11,7 @@ var basePath = process.env.FRAGGLE_BASE_PATH || process.cwd()
 var repos = path.join(basePath, 'repos')
 var logs = path.join(basePath, 'logs')
 var conf = path.join(basePath, 'config.json')
-var cfg = path.join(basePath, settings.isNginx ? 'nginx.cfg' : 'haproxy.cfg')
+var cfg = path.join(basePath, settings.isNginx ? 'nginx.conf' : 'haproxy.cfg')
 var minport = 9000
 
 
@@ -172,7 +172,6 @@ var actions = {
 							command = 'forever'
 
                             // Temporally use forever without 'start' param
-                            /*
                             args = ['start', '-a',
 								'-l', path.join(logs, subdomain+'_l.txt'),
 								'-o', path.join(logs, subdomain+'_o.txt'),
@@ -180,8 +179,8 @@ var actions = {
 								path.join(subdomain, executable),
 								port
 							]
-                            */
 
+                            /*
 							args = [ '-a',
 								'-l', path.join(logs, subdomain+'_l.txt'),
 								'-o', path.join(logs, subdomain+'_o.txt'),
@@ -189,14 +188,16 @@ var actions = {
 								 path.join(subdomain, executable),
 								port
 							]
+                            */
 
+                            console.log('Exec forever : ' + args);
 							execAndPrint(command, args, {cwd: repos}, function(error) {
 								if (error) {
 									console.log('x ' + error)
 									callback(false, false)
 									return
 								}
-
+                                console.log('Running forever');
 								var running = config[domain].running || {}
 								running[subdomain] = { port:port }
 								config[domain].running = running
@@ -344,7 +345,6 @@ if (!action) {
 			}
 			data = data || {}
 			f(data, function(requires_config_save, requires_proxy_restart) {
-
 				if (requires_config_save) {
 					fs.writeFile(conf, JSON.stringify(data), function(err) {
 						console.log('Config saved')
@@ -359,23 +359,30 @@ if (!action) {
 						}
 
 						var out = ejs.render(template, {locals:{data:data}})
-                        sys.out("OUT TEMPLATE : " + out);
-                        sys.out(sys.inspect(cfg));
+                        sys.puts("OUT TEMPLATE : " + out);
+                        sys.puts(sys.inspect(cfg));
 						fs.writeFile(cfg, out, function(err) {
 							if (err) {
 								console.log('Error writing configuration file')
 								return
 							}
-						    var pid = '/var/run/' + isNginx ? 'nginx.pid' : 'haproxy.pid';
+						    var pid = '/var/run/' + (isNginx ? 'nginx.pid' : 'haproxy.pid');
                             var execPath = isNginx ? '/usr/sbin/nginx' : '/usr/local/sbin/haproxy';
 							fs.readFile( pid, 'ascii', function(err, content) {
 								var args = null
 								if (err) {
-									var args = [ execPath, '-f', cfg, '-p', pid, '-st']
+                                    sys.puts('ERROR: ' + err);
+									args = [ execPath, '-f', cfg, '-p', pid, '-st']
 								} else {
 									content = content.replace(/^\s*|\s*$/g,"")
-									var args = [ execPath, '-f', cfg, '-p', pid, '-st', content]
-								}
+                                    if(!isNginx){
+                                        args = [ execPath, '-f', cfg, '-p', pid, '-st', content]
+                                    }else{
+                                        sys.puts('exec path: ' + execPath + '  pid ' + pid);
+                                        //args = [ execPath, '-s', 'reload' ,'-c', cfg, '-g', '"'+'pid '+pid+';"']
+                                        args = [ execPath, '-s', 'reload' ,'-c', cfg]
+                                    }
+                                }
 
 								var command = 'sudo'
 
