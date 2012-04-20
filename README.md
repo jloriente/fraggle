@@ -6,6 +6,15 @@ A command line utility to deploy different versions of nodejs applications. You 
   - Downloads the source code and changes the working directory to a given version (usually a tagged commit). At this moment only git repositories are supported.
   - Changes the proxy configuration to add the new host with that version. At this moment only haproxy is supported.
 
+This project is actually a forked versionn of fraggle for haproxy addapted to an specific nginx configuration.
+
+Changelog
+----------
+This fork includes support to nginx in two different ways: starting service from command line, or delegating nginx start to the init.d script and automating the deployment (in the meantime there is a very specific implementation which will be turned to something more general in future version).
+
+
+Currently a settings file has been addeed so it has to be edited before using fraggle.
+
 Getting started
 ---------------
 
@@ -13,7 +22,7 @@ You can install fraggle with `npm``
 
     npm install fraggle -g
 
-Create a new directory. For example `services`
+Create a new directory. For example `services` NOTE: This is not really used
 
     mkdir services
 
@@ -25,6 +34,22 @@ Create a haproxy.ejs template. You can use [this example](https://github.com/gim
 
 Usage
 -----
+
+First of all edit the file settings.js with the required information. If you are using haproxy then you this is the mininal settings configuration:
+
+var settings = {}
+
+To use fraggle with nginx use a configuration like the next:
+
+var settings = {
+    defaultConfFile     : 'config.json',    // fruggle conf file, defaults to config.json
+    serverTemplate      : 'nginx.ejs',      // the server configuration template (for nginx, haproxy...)
+    nginx               : true,             // is the server nginx? Then next possible values:
+    nginxConfPath       : '/etc/nginx/',    //  the nginx file configuration path
+    nginxConfFile       : 'node-default',   //  the ouput nginx configuration file in nginxConfPath folder
+    appPort             : 80,
+}
+
 
 **Adding services**
 

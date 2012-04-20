@@ -10,10 +10,18 @@ var isNginx = settings.isNginx();
 var basePath = process.env.FRAGGLE_BASE_PATH || process.cwd()
 var repos = path.join(basePath, 'repos')
 var logs = path.join(basePath, 'logs')
-var conf = path.join(basePath, 'config.json')
-var cfg = path.join(basePath, settings.isNginx ? 'nginx.conf' : 'haproxy.cfg')
+var conf = path.join(basePath, settings.get('defaultConfFile', 'config.json'))
+var outputConfFile = path.join(basePath, 'server.conf')
 var minport = 9000
 
+var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' );
+var nginxConfPath   = settings.get( 'nginxConfPath' , '/etc/nginx' );
+var nginxFile       = settings.get( 'nginxConfPath' , 'node-default' );
+
+var nginx = { 
+    sitesAvailable  : path.join(nginxConfPath, 'sites-available',nginxFile),
+    sitesEnabled    : path.join(nginxConfPath, 'sites-enabled', nginxFile)
+}
 
 function availablePort(config) {
 	var p = minport
@@ -144,30 +152,24 @@ var actions = {
 				}
 
 				createDirectories(function() {
-					console.log('Downloading project')
 					execAndPrint(command, args, null, function(error) {
 						if (error) {
 							console.log(error)
 							callback(false, false)
 							return
 						}
-						console.log('Project downloaded')
 
 						if (repo.indexOf('git@') === 0) {
 							command = 'git'
 							args = ['checkout', tag]
 						}
-						console.log('Changing repo to version', tag)
-                        console.log('command ' + command);
-                        console.log(repos);
-                        console.log('SUB : ' + subdomain);
+
 						execAndPrint(command, args, {cwd: path.join(repos, subdomain)}, function(error) {
 							if (error) {
 								console.log(error)
 								callback(false, false)
 								return
 							}
-							console.log('Changed to version', tag)
 
 							command = 'forever'
 
@@ -190,19 +192,16 @@ var actions = {
 							]
                             */
 
-                            console.log('Exec forever : ' + args);
 							execAndPrint(command, args, {cwd: repos}, function(error) {
 								if (error) {
-									console.log('x ' + error)
+									console.log('ERROR ' + error)
 									callback(false, false)
 									return
 								}
-                                console.log('Running forever');
 								var running = config[domain].running || {}
 								running[subdomain] = { port:port }
 								config[domain].running = running
 
-								console.log('Service started')
 								callback(true, true)
 							})
 						})
@@ -319,6 +318,78 @@ var actions = {
 
 }
 
+// Restart server - nginx or haproxy - from command line
+function restartServerCommand(){
+    var pid = '/var/run/' + (isNginx ? 'nginx.pid' : 'haproxy.pid');
+    var execPath = isNginx ? '/usr/sbin/nginx' : '/usr/local/sbin/haproxy';
+    fs.readFile( pid, 'ascii', function(err, content) {
+        var args = null
+        if (err) {
+            sys.puts('ERROR: ' + err);
+            args = [ execPath, '-f', outputConfFile, '-p', pid, '-st']
+        } else {
+            content = content.replace(/^\s*|\s*$/g,"")
+            if(!isNginx){
+                args = [ execPath, '-f', outputConfFile, '-p', pid, '-st', content]
+            }else{
+                //args = [ execPath, '-s', 'reload' ,'-c', outputConfFile, '-g', '"'+'pid '+pid+';"']
+                args = [ execPath, '-s', 'reload' ,'-c', outputConfFile ]
+            }
+        }
+
+        var command = 'sudo'
+
+        execAndPrint(command, args, null, function(error) {
+            if (error) {
+                console.log(error)
+            } else {
+                console.log( isNginx ? 'Nginx restarted' : 'HAProxy restarted')
+            }
+        })
+    })
+}
+
+// Restart ngix using init.d script
+// 1.- copy nginx conf file to /etc/nginx/sites-available
+// 2.- make symlink to that file from sites-enabled
+// 3.- restart nginx
+function restartServerInitd(){
+    // cp nginx conf to /etc/
+    var args = [ 'cp', outputConfFile, nginx.sitesAvailable ]
+    var command = 'sudo'
+    execAndPrint(command, args, null, function(err){
+        if (err){
+            console.log(err);
+        }else{
+            console.log('File copied to ' + nginx.sitesAvailable)
+            target  = nginx.sitesEnabled 
+            source  =  nginx.sitesAvailable
+            args    = [ 'ln', '-s', source, target ];
+            command = 'sudo'
+            // make syslink
+            execAndPrint(command, args, null, function(err){
+                if (err){
+                    console.log(err);
+                }else{
+                    // Restart nginx
+                    execPath ='/etc/init.d/nginx';
+                    args = [ execPath, 'restart'];
+                    command = 'sudo'
+                    // restart nginx
+                    execAndPrint(command, args, null, function(error) {
+                        if (error) {
+                            console.log(error)
+                        } else {
+                            console.log('Nginx restarted')
+                        }
+                    })
+                }
+            })
+        }
+    })
+}
+
+
 var action = process.argv[2]
 
 if (!action) {
@@ -334,7 +405,7 @@ if (!action) {
 			if (err) {
 				console.log(err)
 			}
-
+            
 			if (data) {
 				try {
 					data = JSON.parse(data)
@@ -352,49 +423,28 @@ if (!action) {
 				}
 
 				if (requires_proxy_restart) {
-					fs.readFile(isNginx ? 'nginx.ejs' : 'haproxy.ejs', 'utf8', function(err, template) {
+					fs.readFile(ejsTemplateFile, 'utf8', function(err, template) {
 						if (err) {
-							console.log('Error reading ' + isNginx ? 'nginx.ejs' : 'haproxy.ejs')
+							console.log('Error reading ' + ejsTemplateFile) 
 							return
 						}
+                        console.log(data)
+                        var out = ejs.render(template, {locals:{data:data}})
 
-						var out = ejs.render(template, {locals:{data:data}})
                         sys.puts("OUT TEMPLATE : " + out);
-                        sys.puts(sys.inspect(cfg));
-						fs.writeFile(cfg, out, function(err) {
+                        sys.puts(sys.inspect(outputConfFile));
+
+						fs.writeFile( outputConfFile, out, function(err) {
 							if (err) {
-								console.log('Error writing configuration file')
+								console.log('Error writing configuration file ' + outputConfFile )
 								return
 							}
-						    var pid = '/var/run/' + (isNginx ? 'nginx.pid' : 'haproxy.pid');
-                            var execPath = isNginx ? '/usr/sbin/nginx' : '/usr/local/sbin/haproxy';
-							fs.readFile( pid, 'ascii', function(err, content) {
-								var args = null
-								if (err) {
-                                    sys.puts('ERROR: ' + err);
-									args = [ execPath, '-f', cfg, '-p', pid, '-st']
-								} else {
-									content = content.replace(/^\s*|\s*$/g,"")
-                                    if(!isNginx){
-                                        args = [ execPath, '-f', cfg, '-p', pid, '-st', content]
-                                    }else{
-                                        sys.puts('exec path: ' + execPath + '  pid ' + pid);
-                                        //args = [ execPath, '-s', 'reload' ,'-c', cfg, '-g', '"'+'pid '+pid+';"']
-                                        args = [ execPath, '-s', 'reload' ,'-c', cfg]
-                                    }
-                                }
 
-								var command = 'sudo'
-
-								execAndPrint(command, args, null, function(error) {
-									if (error) {
-										console.log(error)
-									} else {
-										console.log( isNginx ? 'Nginx restarted' : 'HAProxy restarted')
-									}
-								})
-							})
-
+                            if (!isNginx) {
+                                restartServerCommand();
+                            }else{
+                                restartServerInitd();
+                            }
 						})
 					})
 				}
