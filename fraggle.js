@@ -72,7 +72,7 @@ function createDirectories(callback) {
 }
 
 function createPathAsRoot(p, callback) {
-   execAndPrint('sudo', [ 'mkir', '-p', p ], callback); 
+   execAndPrint('sudo', [ 'mkdir', '-p', p ], null, callback);
 }
 
 function createPath(p, callback) {
@@ -363,7 +363,7 @@ function restartServerInitd(){
             if (err){
                 console.log(err);
             }else{
-                console.log( 'Nginx server file ' + nginxFile )
+                console.log( 'Nginx conf file created ' + nginxConfFileName )
                 var execPath ='/etc/init.d/nginx';
                 args = [ execPath, 'restart'];
                 command = 'sudo'
@@ -421,7 +421,7 @@ if (!action) {
                         console.log(data)
                         var out = ejs.render(template, {locals:{data:data}})
 
-                        sys.puts("OUT TEMPLATE : " + out);
+                        sys.puts("Nginx output from template: " + out)
                         sys.puts(sys.inspect(outputConfFile));
 
 						fs.writeFile( outputConfFile, out, function(err) {
