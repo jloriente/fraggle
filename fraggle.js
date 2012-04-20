@@ -16,7 +16,7 @@ var minport = 9000
 
 var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' );
 var nginxConfPath   = settings.get( 'nginxConfPath' , '/etc/nginx' );
-var nginxFile       = settings.get( 'nginxConfPath' , 'node-default' );
+var nginxFile       = settings.get( 'nginxConfFile' , 'node-default' );
 
 var nginx = { 
     sitesAvailable  : path.join(nginxConfPath, 'sites-available',nginxFile),
