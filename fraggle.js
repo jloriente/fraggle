@@ -14,14 +14,9 @@ var conf = path.join(basePath, settings.get('defaultConfFile', 'config.json'))
 var outputConfFile = path.join(basePath, 'server.conf')
 var minport = 9000
 
-var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' );
-var nginxConfPath   = settings.get( 'nginxConfPath' , '/etc/nginx' );
-var nginxFile       = settings.get( 'nginxConfFile' , 'node-default' );
-
-var nginx = { 
-    sitesAvailable  : path.join(nginxConfPath, 'sites-available',nginxFile),
-    sitesEnabled    : path.join(nginxConfPath, 'sites-enabled', nginxFile)
-}
+var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' )
+var nginxPath       = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
+var nginxFile       = settings.get( 'nginxConfFile' , 'node-default' )
 
 function availablePort(config) {
 	var p = minport
@@ -350,39 +345,27 @@ function restartServerCommand(){
 }
 
 // Restart ngix using init.d script
-// 1.- copy nginx conf file to /etc/nginx/sites-available
-// 2.- make symlink to that file from sites-enabled
+// 1.- copy nginx conf file to /etc
 // 3.- restart nginx
 function restartServerInitd(){
     // cp nginx conf to /etc/
-    var args = [ 'cp', outputConfFile, nginx.sitesAvailable ]
+    var args = [ 'cp', outputConfFile, nginxFile ]
     var command = 'sudo'
     execAndPrint(command, args, null, function(err){
         if (err){
             console.log(err);
         }else{
-            console.log('File copied to ' + nginx.sitesAvailable)
-            target  = nginx.sitesEnabled 
-            source  =  nginx.sitesAvailable
-            args    = [ 'ln', '-s', source, target ];
+            console.log( 'File copied to ' + nginxFile )
+            // Restart nginx
+            execPath ='/etc/init.d/nginx';
+            args = [ execPath, 'restart'];
             command = 'sudo'
-            // make syslink
-            execAndPrint(command, args, null, function(err){
-                if (err){
-                    console.log(err);
-                }else{
-                    // Restart nginx
-                    execPath ='/etc/init.d/nginx';
-                    args = [ execPath, 'restart'];
-                    command = 'sudo'
-                    // restart nginx
-                    execAndPrint(command, args, null, function(error) {
-                        if (error) {
-                            console.log(error)
-                        } else {
-                            console.log('Nginx restarted')
-                        }
-                    })
+            // restart nginx
+            execAndPrint(command, args, null, function(error) {
+                if (error) {
+                    console.log(error)
+                } else {
+                    console.log('Nginx restarted')
                 }
             })
         }
@@ -405,7 +388,7 @@ if (!action) {
 			if (err) {
 				console.log(err)
 			}
-            
+
 			if (data) {
 				try {
 					data = JSON.parse(data)
@@ -425,7 +408,7 @@ if (!action) {
 				if (requires_proxy_restart) {
 					fs.readFile(ejsTemplateFile, 'utf8', function(err, template) {
 						if (err) {
-							console.log('Error reading ' + ejsTemplateFile) 
+							console.log('Error reading ' + ejsTemplateFile)
 							return
 						}
                         console.log(data)
