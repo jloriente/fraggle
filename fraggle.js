@@ -73,8 +73,10 @@ function createDirectories(callback) {
 
 function createPath(p, callback) {
 	path.exists(p, function(exists) {
+        console.log('creting path ' + p)
 		if (!exists) {
 			fs.mkdir(p, "0755", function() {
+                console.log('created');
 				callback()
 				return
 			})
