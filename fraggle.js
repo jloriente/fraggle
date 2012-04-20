@@ -71,9 +71,13 @@ function createDirectories(callback) {
 	})
 }
 
+function createPathAsRoot(p, callback) {
+   execAndPrint('sudo', [ 'mkir', '-p', p ], callback); 
+}
+
 function createPath(p, callback) {
 	path.exists(p, function(exists) {
-        console.log('creting path ' + p)
+        console.log('creating path ' + p)
 		if (!exists) {
 			fs.mkdir(p, "0755", function() {
                 console.log('created');
@@ -350,7 +354,7 @@ function restartServerCommand(){
 // 1.- copy nginx conf file to /etc
 // 2.- restart nginx
 function restartServerInitd(){
-    createPath( nginxConfPath, function(){
+    createPathAsRoot( nginxConfPath, function(){
         // cp nginx conf to /etc/
         var confFile = path.join( nginxConfPath, nginxConfFileName );
         var args = [ 'cp', outputConfFile, confFile ]
