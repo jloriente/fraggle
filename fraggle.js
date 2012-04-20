@@ -15,8 +15,8 @@ var outputConfFile = path.join(basePath, 'server.conf')
 var minport = 9000
 
 var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' )
-var nginxPath       = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
-var nginxFile       = settings.get( 'nginxConfFile' , 'node-default' )
+var nginxConfPath = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
+var nginxConfFileName = settings.get( 'nginxConfFileName' , 'node-default' )
 
 function availablePort(config) {
 	var p = minport
@@ -346,30 +346,31 @@ function restartServerCommand(){
 
 // Restart ngix using init.d script
 // 1.- copy nginx conf file to /etc
-// 3.- restart nginx
+// 2.- restart nginx
 function restartServerInitd(){
-    // cp nginx conf to /etc/
-    var args = [ 'cp', outputConfFile, nginxFile ]
-    var command = 'sudo'
-    execAndPrint(command, args, null, function(err){
-        if (err){
-            console.log(err);
-        }else{
-            console.log( 'File copied to ' + nginxFile )
-            // Restart nginx
-            execPath ='/etc/init.d/nginx';
-            args = [ execPath, 'restart'];
-            command = 'sudo'
-            // restart nginx
-            execAndPrint(command, args, null, function(error) {
-                if (error) {
-                    console.log(error)
-                } else {
-                    console.log('Nginx restarted')
-                }
-            })
-        }
-    })
+    createPath( nginxConfPath, function(){
+        // cp nginx conf to /etc/
+        var confFile = path.join( nginxConfPath, nginxConfFileName );
+        var args = [ 'cp', outputConfFile, confFile ]
+        var command = 'sudo'
+        execAndPrint(command, args, null, function(err){
+            if (err){
+                console.log(err);
+            }else{
+                console.log( 'Nginx server file ' + nginxFile )
+                var execPath ='/etc/init.d/nginx';
+                args = [ execPath, 'restart'];
+                command = 'sudo'
+                execAndPrint(command, args, null, function(error) {
+                    if (error) {
+                        console.log(error)
+                    } else {
+                        console.log('Nginx restarted')
+                    }
+                })
+            }
+        })
+    });
 }
 
 
