@@ -149,7 +149,7 @@ var actions = {
 				var repo = config[domain].repo
 				var executable = config[domain].executable
 				var args = null
-
+                
 				if (repo.indexOf('git@') === 0) {
 					command = 'git'
 					args = ['clone', repo, path.join(repos, subdomain)]
@@ -182,40 +182,42 @@ var actions = {
 								callback(false, false)
 								return
 							}
+                            
+                            if ( executable !== 'none'){
+                                command = 'forever'
+                            
+                                // Temporally use forever without 'start' param
+                                args = ['start', '-a',
+                                    '-l', path.join(logs, subdomain+'_l.txt'),
+                                    '-o', path.join(logs, subdomain+'_o.txt'),
+                                    '-e', path.join(logs, subdomain+'_e.txt'),
+                                    path.join(subdomain, executable),
+                                    port
+                                ]
 
-							command = 'forever'
+                                /*
+                                args = [ '-a',
+                                    '-l', path.join(logs, subdomain+'_l.txt'),
+                                    '-o', path.join(logs, subdomain+'_o.txt'),
+                                    '-e', path.join(logs, subdomain+'_e.txt'),
+                                     path.join(subdomain, executable),
+                                    port
+                                ]
+                                */
 
-                            // Temporally use forever without 'start' param
-                            args = ['start', '-a',
-								'-l', path.join(logs, subdomain+'_l.txt'),
-								'-o', path.join(logs, subdomain+'_o.txt'),
-								'-e', path.join(logs, subdomain+'_e.txt'),
-								path.join(subdomain, executable),
-								port
-							]
+                                execAndPrint(command, args, {cwd: repos}, function(error) {
+                                    if (error) {
+                                        console.log('ERROR ' + error)
+                                        callback(false, false)
+                                        return
+                                    }
+                                    var running = config[domain].running || {}
+                                    running[subdomain] = { port:port }
+                                    config[domain].running = running
 
-                            /*
-							args = [ '-a',
-								'-l', path.join(logs, subdomain+'_l.txt'),
-								'-o', path.join(logs, subdomain+'_o.txt'),
-								'-e', path.join(logs, subdomain+'_e.txt'),
-								 path.join(subdomain, executable),
-								port
-							]
-                            */
-
-							execAndPrint(command, args, {cwd: repos}, function(error) {
-								if (error) {
-									console.log('ERROR ' + error)
-									callback(false, false)
-									return
-								}
-								var running = config[domain].running || {}
-								running[subdomain] = { port:port }
-								config[domain].running = running
-
-								callback(true, true)
-							})
+                                    callback(true, true)
+                                })
+                            }
 						})
 					})
 				})
