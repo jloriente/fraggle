@@ -1,0 +1,7 @@
+
+This is working ok:
+/usr/local/bin/forever -a -l /home/innerfunction/workspace/fraggle/logs/2.1.3.www.app.webmob.es_l.txt -o /home/innerfunction/workspace/fraggle/logs/2.1.3.www.app.webmob.es_o.txt -e /home/innerfunction/workspace/fraggle/logs/2.1.3.www.app.webmob.es_e.txt 2.1.3.www.app.webmob.es/uspace/semo.js 9000
+
+But starting as a daemon don't work
+forever start -a -l /home/innerfunction/workspace/fraggle/logs/2.1.3.www.app.webmob.es_l.txt -o /home/innerfunction/workspace/fraggle/logs/2.1.3.www.app.webmob.es_o.txt -e /home/innerfunction/workspace/fraggle/logs/2.1.3.www.app.webmob.es_e.txt 2.1.3.www.app.webmob.es/uspace/semo.js 9000 exited with code 255
+
