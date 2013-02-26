@@ -2,17 +2,19 @@ var fs = require('fs')
 var path = require('path')
 var child_process = require('child_process')
 var sys = require('sys')
-require('colors')
+//require('colors')
 var ejs = require('ejs')
 var settings = require('./settings');
 var isNginx = settings.isNginx();
 
+
 var basePath = process.env.FRAGGLE_BASE_PATH || process.cwd()
-var repos = path.join(basePath, 'repos')
+var repos = settings.get('deploymentPath', path.join(basePath, 'repos'))
 var logs = path.join(basePath, 'logs')
 var conf = path.join(basePath, settings.get('defaultConfFile', 'config.json'))
 var outputConfFile = path.join(basePath, 'server.conf')
 var minport = 9000
+
 
 var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' )
 var nginxConfPath = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
@@ -44,6 +46,11 @@ function isAvailable(config, p) {
 }
 
 function execAndPrint(command, args, options, callback) {
+    
+    console.log('execAndPrint: ' + command );
+    console.log(args);
+    console.log(options);
+
 	var proc = child_process.spawn(command, args, options)
 
 	proc.stdout.on('data', function (data) {
@@ -154,6 +161,9 @@ var actions = {
 
 				createDirectories(function() {
 					execAndPrint(command, args, null, function(error) {
+                        console.log('innnn : ' + command ); 
+                        console.log(args);
+                        console.log(error);
 						if (error) {
 							console.log(error)
 							callback(false, false)
@@ -166,6 +176,7 @@ var actions = {
 						}
 
 						execAndPrint(command, args, {cwd: path.join(repos, subdomain)}, function(error) {
+                                console.log('back : ' + command  + args )
 							if (error) {
 								console.log(error)
 								callback(false, false)
