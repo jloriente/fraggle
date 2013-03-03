@@ -16,9 +16,7 @@ var outputConfFile = path.join(basePath, 'server.conf')
 var minport = 9000
 
 
-var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' )
-console.log('server template');
-console.log(ejsTemplateFile);
+var ejsTemplateFile = path.join(basePath, settings.get( 'serverTemplate', 'haproxy.ejs' )
 var nginxConfPath = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
 var nginxConfFileName = settings.get( 'nginxConfFileName' , 'node-default' )
 
@@ -423,7 +421,7 @@ if (!action) {
 			f(data, function(requires_config_save, requires_proxy_restart) {
 				if (requires_config_save) {
 					fs.writeFile(conf, JSON.stringify(data), function(err) {
-						console.log('Config saved')
+						console.log('Saving ' + conf + '  ...')
 					})
 				}
 
@@ -433,6 +431,7 @@ if (!action) {
 							console.log('Error reading ' + ejsTemplateFile)
 							return
 						}
+                        console.log( config  + ' data is: ' );
                         console.log(data)
                         var out = ejs.render(template, {locals:{data:data}})
 
