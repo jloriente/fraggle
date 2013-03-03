@@ -5,7 +5,7 @@ var settings = {
     nginxConfPath       : '/etc/nginx/node',    //  the nginx file configuration path
     nginxConfFileName   : 'node-default',   //  the ouput nginx configuration file in nginxConfPath folder
     appPort             : 80,
-    deploymentPath  : '/Users/javier/workspace/git/jloriente/fraggle/repos-out'     // output path
+    deploymentPath  	: '/home/innerfunction/workspace/jloriente/fraggle/repos' 	// output path
 }
 exports.get = function(id, defaultValue){
     return settings[id] || defaultValue;

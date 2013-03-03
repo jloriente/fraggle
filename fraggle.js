@@ -185,7 +185,7 @@ var actions = {
 							}
                              
                             var running = config[domain].running || {}
-                            running[subdomain] = { port:port }
+                            running[subdomain] = { port:port, path : repos}
                             config[domain].running = running
                             callback(true, true)
                             
@@ -449,7 +449,7 @@ if (!action) {
 						}
 
                         sys.puts('Rendering template with data: ');
-                        sys.puts(data);
+                        console.log(data);
 
                         var out = ejs.render(template, {locals:{data:data}})
 

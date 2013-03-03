@@ -1,0 +1,8 @@
+#!/bin/bash
+echo CLEANING OUTPUT REPOS AND config.json
+rm -r repos
+touch config.json
+echo ADDING APP.WEBMOB.ES
+/usr/local/bin/node fraggle add app.webmob.es git@github.com:innerfunction/Semo-UI.git none
+echo DEPLOYING
+/usr/local/bin/node fraggle deploy 0.1.app.webmob.es 

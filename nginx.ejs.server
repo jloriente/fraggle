@@ -1,18 +1,12 @@
 <% for (var domain in data) { %>
 <% for (var subdomain in data[domain].running) { %>
-<% var subdomainData = data[domain].running[subdomain] %>
 server {
     listen 80;
     server_name <%= subdomain %>, wwww.<%= subdomain %>;
     access_log  /var/log/nginx/<%= subdomain %>.access.log;
     error_log   /var/log/nginx/<%= subdomain %>.error.log;
-    // UI config
-    location / {
-        proxy_pass <%= subdomainData.path %>
-    }
-    // Server config
     location /api/ {
-        proxy_pass  http://127.0.0.1:<%= subdomainData.port %>/;
+        proxy_pass  http://127.0.0.1:<%= data[domain].running[subdomain].port %>/;
         include /etc/nginx/proxy.conf;
     }
 }
