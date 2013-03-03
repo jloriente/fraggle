@@ -17,6 +17,8 @@ var minport = 9000
 
 
 var ejsTemplateFile = settings.get( 'serverTemplate', 'haproxy.ejs' )
+console.log('server template');
+console.log(ejsTemplateFile);
 var nginxConfPath = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
 var nginxConfFileName = settings.get( 'nginxConfFileName' , 'node-default' )
 
