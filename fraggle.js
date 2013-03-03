@@ -16,7 +16,7 @@ var outputConfFile = path.join(basePath, 'server.conf')
 var minport = 9000
 
 
-var ejsTemplateFile = path.join(basePath, settings.get( 'serverTemplate', 'haproxy.ejs' )
+var ejsTemplateFile = path.join(basePath, settings.get( 'serverTemplate', 'haproxy.ejs' ))
 var nginxConfPath = settings.get( 'nginxConfPath' , '/etc/nginx/node' )
 var nginxConfFileName = settings.get( 'nginxConfFileName' , 'node-default' )
 
@@ -174,7 +174,8 @@ var actions = {
 							command = 'git'
 							args = ['checkout', tag]
 						}
-
+                        
+                        // Checkout repo
 						execAndPrint(command, args, {cwd: path.join(repos, subdomain)}, function(error) {
                                 console.log('back : ' + command  + args )
 							if (error) {
@@ -182,7 +183,13 @@ var actions = {
 								callback(false, false)
 								return
 							}
+                             
+                            var running = config[domain].running || {}
+                            running[subdomain] = { port:port }
+                            config[domain].running = running
+                            callback(true, true)
                             
+                            // TODO: review this, forever replaced with monit 
                             if ( executable !== 'none'){
                                 command = 'forever'
                             
@@ -204,8 +211,11 @@ var actions = {
                                     port
                                 ]
                                 */
+                                
 
-                                execAndPrint(command, args, {cwd: repos}, function(error) {
+                                // Exec forever
+                                // Not used: we use monit instead
+                               /* execAndPrint(command, args, {cwd: repos}, function(error) {
                                     if (error) {
                                         console.log('ERROR ' + error)
                                         callback(false, false)
@@ -217,6 +227,7 @@ var actions = {
 
                                     callback(true, true)
                                 })
+                               */
                             }
 						})
 					})
@@ -403,7 +414,8 @@ if (!action) {
 	if (!f) {
 		console.log('Unknown action', action)
 	} else {
-
+        
+        // Read the config.json file
 		var services = fs.readFile(conf, 'utf8', function(err, data) {
 			if (err) {
 				console.log(err)
@@ -412,17 +424,21 @@ if (!action) {
 			if (data) {
 				try {
 					data = JSON.parse(data)
+                    console.log(data);
 				} catch(e) {
-					console.log(data)
 					console.log('Error parsing data')
+					console.log(data)
 				}
 			}
 			data = data || {}
+            // Call the action passing the data
 			f(data, function(requires_config_save, requires_proxy_restart) {
+
+                // Callback run after action 
 				if (requires_config_save) {
 					fs.writeFile(conf, JSON.stringify(data), function(err) {
-						console.log('Saving ' + conf + '  ...')
-					})
+						console.log('Saving config file: ' + conf )
+					});
 				}
 
 				if (requires_proxy_restart) {
@@ -431,12 +447,14 @@ if (!action) {
 							console.log('Error reading ' + ejsTemplateFile)
 							return
 						}
-                        console.log( config  + ' data is: ' );
-                        console.log(data)
+
+                        sys.puts('Rendering template with data: ');
+                        sys.puts(data);
+
                         var out = ejs.render(template, {locals:{data:data}})
 
-                        sys.puts("Nginx output from template: " + out)
-                        sys.puts(sys.inspect(outputConfFile));
+                        sys.puts('Result from ejs render: ' + out)
+                        sys.puts('Saving to file: ' + sys.inspect(outputConfFile));
 
 						fs.writeFile( outputConfFile, out, function(err) {
 							if (err) {

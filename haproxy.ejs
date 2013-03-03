@@ -18,7 +18,6 @@ frontend all 0.0.0.0:80
 	log 		127.0.0.1 local0 err
 	timeout client	86400000
 	# default_backend sitio_web
-
 <% for (var domain in data) { %>
 <% for (var subdomain in data[domain].running) { %>
 	# <%= subdomain %>

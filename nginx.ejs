@@ -1,4 +1,8 @@
+**data <%= data %>
 <% for (var domain in data) { %>
+---domain <%= domain %>
+---data.domain <%= data[domain] %>
+---data.running <%= data[domain].running %>
 <% for (var subdomain in data[domain].running) { %>
 server {
     listen 80;
